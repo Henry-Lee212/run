@@ -107,7 +107,7 @@ td.name{max-width:340px;overflow:hidden;text-overflow:ellipsis;font-weight:500} 
 tbody tr:hover{background:var(--surface-2)}
 .badge{display:inline-block;font-size:10px;padding:2px 8px;border-radius:999px;background:var(--surface-2);color:var(--muted)}
 .badge.g{background:rgba(200,242,62,.32);color:#4d6310} .badge.s{background:var(--surface-2);color:var(--muted)}
-.filter-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px}
+.filter-row{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:12px;margin-bottom:14px}
 input[type=text],input[type=date]{width:100%;height:38px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--surface-2);color:var(--ink);font-family:inherit;font-size:13px;padding:0 12px}
 
 .map-layout{display:grid;grid-template-columns:300px 1fr;gap:16px}
@@ -244,7 +244,11 @@ input[type=text],input[type=date]{width:100%;height:38px;border:1px solid var(--
         <div class="card-head"><h3>Where you ran</h3><span class="hint" id="map-note">GPS routes</span></div>
         <div class="map-layout">
           <div class="map-side">
-            <div class="row"><label class="switch"><input type="checkbox" id="show-all" checked> Show all routes</label></div>
+            <div class="control-row"><label class="control-label">Country</label></div>
+            <select id="map-country"><option value="all">All countries</option></select>
+            <div class="control-row" style="margin-top:12px"><label class="control-label">Region</label></div>
+            <select id="map-region"><option value="all">All regions</option></select>
+            <div class="row" style="margin-top:14px"><label class="switch"><input type="checkbox" id="show-all" checked> Show all routes</label></div>
             <div class="control-row"><label class="control-label">Highlight a run</label></div>
             <select id="map-activity"><option value="">Select an activity…</option></select>
             <div class="card" style="margin-top:14px;box-shadow:none;border:1px solid var(--line);padding:14px 16px">
@@ -259,8 +263,8 @@ input[type=text],input[type=date]{width:100%;height:38px;border:1px solid var(--
     </div>
 
     <div id="tab-activities" class="tab-panel">
-      <div class="filter-row"><input id="search" type="text" placeholder="Search Strava title…"><input id="start-date" type="date"><input id="end-date" type="date"></div>
-      <div class="card"><div class="card-head"><h3>Activity explorer</h3><span class="hint" id="activity-count"></span></div><div class="table-wrap"><table><thead><tr><th>Date</th><th>Title</th><th>Source</th><th class="right">Miles</th><th class="right">Gain</th><th class="right">Avg HR</th><th class="right" id="activity-hr-head">Elevated HR</th><th class="right">TE</th></tr></thead><tbody id="activity-table"></tbody></table></div></div>
+      <div class="filter-row"><input id="search" type="text" placeholder="Search Strava title…"><select id="table-country"><option value="all">All countries</option></select><input id="start-date" type="date"><input id="end-date" type="date"></div>
+      <div class="card"><div class="card-head"><h3>Activity explorer</h3><span class="hint" id="activity-count"></span></div><div class="table-wrap"><table><thead><tr><th>Date</th><th>Title</th><th>Source</th><th>Location</th><th class="right">Miles</th><th class="right">Gain</th><th class="right">Avg HR</th><th class="right" id="activity-hr-head">Elevated HR</th><th class="right">TE</th></tr></thead><tbody id="activity-table"></tbody></table></div></div>
     </div>
   </main>
 </div>
@@ -291,7 +295,7 @@ async function loadActivities(){
   }
 }
 
-const SUMMARY = {"totalRecords": 1283, "garminRecords": 951, "stravaOnly": 332, "matched": 749, "withHrZones": 945, "minDate": "2021-01-16", "maxDate": "2026-06-21"};
+const SUMMARY = {"totalRecords": 1163, "garminRecords": 951, "stravaOnly": 212, "matched": 869, "withHrZones": 945, "minDate": "2021-01-16", "maxDate": "2026-06-21"};
 const TODAY = new Date(SUMMARY.maxDate + 'T12:00:00');
 let months = 4, typeFilter = 'Run', hrMode = 'all';
 let customZones = ['z2h','z3h','z4h','z5h'];
@@ -367,12 +371,22 @@ function renderReadiness(rows){
   const data=[{metric:'Total miles',value:miles},{metric:'Climb ft / 100',value:gain/100},{metric:'Descent ft / 100',value:loss/100},{metric:hrLabel()+' ×10',value:elevatedTotals(runRows)*10},{metric:'Long runs ×10',value:long15*10},{metric:'3k vert days ×10',value:vert3*10}]; makeChart('specificityChart',{type:'bar',data:{labels:data.map(d=>d.metric),datasets:[{label:'Specificity index units',data:data.map(d=>Math.round(d.value)),backgroundColor:T.ink,borderRadius:7,maxBarThickness:34}]},options:{...baseOpts(),plugins:{legend:{display:false},tooltip:{backgroundColor:T.ink,padding:10,cornerRadius:10,callbacks:{label:(c)=>c.parsed.y}}}}});
   document.getElementById('big-efforts').innerHTML=runRows.slice().sort((a,b)=>((b.distanceMi||0)+(b.elevGainFt||0)/1000)-((a.distanceMi||0)+(a.elevGainFt||0)/1000)).slice(0,12).map(a=>`<tr><td>${a.date}</td><td class="name">${a.name}</td><td class="right">${mi(a.distanceMi)}</td><td class="right">${moneyish(a.elevGainFt)} ft</td><td class="right">${hrs(elevated(a))}</td></tr>`).join('');
 }
+let tableCountriesFilled=false;
+function fillTableCountries(){
+  if(tableCountriesFilled) return;
+  const c={}; ACTIVITIES.forEach(a=>{const k=a.country||''; if(k) c[k]=(c[k]||0)+1;});
+  const opts=['<option value="all">All countries</option>']
+    .concat(Object.entries(c).sort((a,b)=>b[1]-a[1]).map(([k,n])=>`<option value="${k}">${k} (${n})</option>`));
+  document.getElementById('table-country').innerHTML=opts.join('');
+  tableCountriesFilled=true;
+}
 function renderActivities(rows){
-  const q=document.getElementById('search').value.toLowerCase(); const sd=document.getElementById('start-date').value; const ed=document.getElementById('end-date').value;
-  let rr=rows.filter(a=>(!q||a.name.toLowerCase().includes(q))&&(!sd||a.date>=sd)&&(!ed||a.date<=ed)); const ah=document.getElementById('activity-hr-head'); if(ah) ah.textContent=hrLabel(); document.getElementById('activity-count').textContent=`${rr.length} shown`; document.getElementById('activity-table').innerHTML=rr.slice(0,400).map(a=>`<tr><td>${a.date}</td><td class="name">${a.name}</td><td>${sourceBadge(a.source)}</td><td class="right">${mi(a.distanceMi)}</td><td class="right">${moneyish(a.elevGainFt)} ft${a.elevCorrection?' <span class="badge" title="'+a.elevCorrection+'">fixed</span>':''}</td><td class="right">${a.avgHr||''}</td><td class="right">${hrs(elevated(a))}</td><td class="right">${a.trainingEffect||''}</td></tr>`).join('');
+  const q=document.getElementById('search').value.toLowerCase(); const sd=document.getElementById('start-date').value; const ed=document.getElementById('end-date').value; const ctry=document.getElementById('table-country').value;
+  let rr=rows.filter(a=>(!q||a.name.toLowerCase().includes(q))&&(!sd||a.date>=sd)&&(!ed||a.date<=ed)&&(ctry==='all'||a.country===ctry)); const ah=document.getElementById('activity-hr-head'); if(ah) ah.textContent=hrLabel(); document.getElementById('activity-count').textContent=`${rr.length} shown`; document.getElementById('activity-table').innerHTML=rr.slice(0,400).map(a=>`<tr><td>${a.date}</td><td class="name">${a.name}</td><td>${sourceBadge(a.source)}</td><td>${a.region&&a.region!=='Other'?a.region+', ':''}${a.country||'<span style="color:var(--faint)">—</span>'}</td><td class="right">${mi(a.distanceMi)}</td><td class="right">${moneyish(a.elevGainFt)} ft${a.elevCorrection?' <span class="badge" title="'+a.elevCorrection+'">fixed</span>':''}</td><td class="right">${a.avgHr||''}</td><td class="right">${hrs(elevated(a))}</td><td class="right">${a.trainingEffect||''}</td></tr>`).join('');
 }
 function renderAll(){
   const rows=filtered();
+  fillTableCountries();
   const startStr=startWindow().toISOString().slice(0,10);
   document.getElementById('data-note').textContent=`${SUMMARY.totalRecords} records · ${SUMMARY.matched} matched`;
   const rp=document.getElementById('range-pill'); if(rp) rp.textContent=`${startStr} → ${SUMMARY.maxDate}`;
@@ -380,6 +394,7 @@ function renderAll(){
 }
 
 let ROUTES=null, mapObj=null, allLayer=null, selLayer=null, mapInit=false;
+let mapCountry='all', mapRegion='all';
 async function ensureRoutes(){
   if(ROUTES) return ROUTES;
   document.getElementById('map-note').textContent='Loading routes…';
@@ -388,32 +403,62 @@ async function ensureRoutes(){
   return ROUTES;
 }
 function activityById(id){ return ACTIVITIES.find(a=>a.id===id); }
+function routeVisible(id){
+  const r=ROUTES[id]; if(!r) return false;
+  return (mapCountry==='all'||r.country===mapCountry) && (mapRegion==='all'||r.region===mapRegion);
+}
+function countBy(key, filterCountry){
+  const c={}; for(const id in ROUTES){ const r=ROUTES[id];
+    if(key==='region' && filterCountry!=='all' && r.country!==filterCountry) continue;
+    const k=r[key]||'Other'; c[k]=(c[k]||0)+1; } return c;
+}
+function fillCountrySelect(){
+  const c=countBy('country'); const total=Object.values(c).reduce((a,b)=>a+b,0);
+  const opts=['<option value="all">All countries ('+total+')</option>']
+    .concat(Object.entries(c).sort((a,b)=>b[1]-a[1]).map(([k,n])=>`<option value="${k}">${k} (${n})</option>`));
+  document.getElementById('map-country').innerHTML=opts.join('');
+}
+function fillRegionSelect(){
+  const c=countBy('region', mapCountry);
+  const total=Object.values(c).reduce((a,b)=>a+b,0);
+  const label = mapCountry==='all' ? 'All regions' : 'All regions';
+  const opts=['<option value="all">'+label+' ('+total+')</option>']
+    .concat(Object.entries(c).sort((a,b)=>b[1]-a[1]).map(([k,n])=>`<option value="${k}">${k} (${n})</option>`));
+  document.getElementById('map-region').innerHTML=opts.join('');
+  document.getElementById('map-region').value='all';
+}
+function fillActivitySelect(){
+  const sel=document.getElementById('map-activity');
+  const opts=['<option value="">Select an activity…</option>'].concat(
+    ACTIVITIES.filter(a=>a.id && ROUTES[a.id] && routeVisible(a.id))
+      .map(a=>`<option value="${a.id}">${a.date} · ${(a.name||'').replace(/</g,'')} (${mi(a.distanceMi)} mi)</option>`));
+  sel.innerHTML=opts.join('');
+}
 async function initMap(){
   if(mapInit) { setTimeout(()=>mapObj.invalidateSize(),50); return; }
   mapInit=true;
   await ensureRoutes();
-  const ids=Object.keys(ROUTES);
-  mapObj=L.map('map',{zoomControl:true,attributionControl:true}).setView([54,-1.7],5);
+  mapObj=L.map('map',{zoomControl:true,attributionControl:true}).setView([40.78,-73.97],4);
   L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{
     attribution:'&copy; OpenStreetMap &copy; CARTO', subdomains:'abcd', maxZoom:19}).addTo(mapObj);
-
-  const sel=document.getElementById('map-activity');
-  const opts=ACTIVITIES.filter(a=>a.id && ROUTES[a.id])
-    .map(a=>`<option value="${a.id}">${a.date} · ${(a.name||'').replace(/</g,'')} (${mi(a.distanceMi)} mi)</option>`).join('');
-  sel.insertAdjacentHTML('beforeend', opts);
-
-  drawAll();
-  document.getElementById('map-kpis').innerHTML=`<div class="kpi"><div class="kpi-label">Mapped activities</div><div class="kpi-value">${ids.length}</div><div class="kpi-sub">with GPS tracks</div></div><div class="kpi"><div class="kpi-label">Total records</div><div class="kpi-value">${SUMMARY.totalRecords}</div><div class="kpi-sub">${SUMMARY.minDate} → ${SUMMARY.maxDate}</div></div>`;
-  document.getElementById('map-note').textContent=`${ids.length} GPS routes`;
+  fillCountrySelect(); fillRegionSelect(); fillActivitySelect();
+  refreshMap();
   setTimeout(()=>mapObj.invalidateSize(),60);
 }
-function drawAll(){
+function refreshMap(){
+  const visIds=Object.keys(ROUTES).filter(routeVisible);
+  // KPIs reflect current filter
+  document.getElementById('map-kpis').innerHTML=`<div class="kpi"><div class="kpi-label">Routes shown</div><div class="kpi-value">${visIds.length}</div><div class="kpi-sub">${mapCountry==='all'?'all countries':mapCountry}${mapRegion==='all'?'':' · '+mapRegion}</div></div><div class="kpi"><div class="kpi-label">Total mapped</div><div class="kpi-value">${Object.keys(ROUTES).length}</div><div class="kpi-sub">with GPS tracks</div></div>`;
+  document.getElementById('map-note').textContent=`${visIds.length} of ${Object.keys(ROUTES).length} GPS routes`;
+  drawAll(visIds);
+}
+function drawAll(visIds){
+  visIds = visIds || Object.keys(ROUTES).filter(routeVisible);
   if(allLayer) mapObj.removeLayer(allLayer);
-  if(!document.getElementById('show-all').checked) return;
-  const lines=[];
-  for(const id in ROUTES){ lines.push(L.polyline(ROUTES[id].pts,{color:T.ink,weight:1.2,opacity:.28})); }
-  allLayer=L.layerGroup(lines).addTo(mapObj);
-  try{ const b=L.latLngBounds([]); for(const id in ROUTES) ROUTES[id].pts.forEach(p=>b.extend(p)); if(b.isValid()) mapObj.fitBounds(b.pad(.05)); }catch(e){}
+  if(document.getElementById('show-all').checked && visIds.length){
+    allLayer=L.layerGroup(visIds.map(id=>L.polyline(ROUTES[id].pts,{color:T.ink,weight:1.2,opacity:.28}))).addTo(mapObj);
+  }
+  try{ const b=L.latLngBounds([]); visIds.forEach(id=>ROUTES[id].pts.forEach(p=>b.extend(p))); if(b.isValid()) mapObj.fitBounds(b.pad(.08)); }catch(e){}
 }
 function drawSelected(id){
   if(selLayer) mapObj.removeLayer(selLayer);
@@ -426,9 +471,9 @@ function drawSelected(id){
     L.circleMarker(pts[pts.length-1],{radius:5,color:'#fff',weight:2,fillColor:T.ink,fillOpacity:1})
   ]).addTo(mapObj);
   mapObj.fitBounds(L.polyline(pts).getBounds().pad(.15));
-  const a=activityById(id);
+  const a=activityById(id); const r=ROUTES[id];
   if(a){ document.getElementById('route-name').textContent=a.name;
-    document.getElementById('route-meta').textContent=`${a.date} · ${mi(a.distanceMi)} mi · ${moneyish(a.elevGainFt)} ft gain`; }
+    document.getElementById('route-meta').textContent=`${a.date} · ${mi(a.distanceMi)} mi · ${moneyish(a.elevGainFt)} ft gain · ${r.region}, ${r.country}`; }
 }
 
 document.getElementById('months').addEventListener('input',e=>{months=+e.target.value;document.getElementById('months-out').textContent=months+' month'+(months===1?'':'s');renderAll();});
@@ -437,8 +482,20 @@ document.getElementById('hr-mode').addEventListener('change',e=>{hrMode=e.target
 document.querySelectorAll('.zone-box').forEach(cb=>cb.addEventListener('change',()=>{customZones=Array.from(document.querySelectorAll('.zone-box:checked')).map(x=>x.value); if(customZones.length===0){customZones=['z2h']; document.querySelector('.zone-box[value="z2h"]').checked=true;} renderAll();}));
 document.getElementById('reset').addEventListener('click',()=>{months=4;typeFilter='Run';hrMode='all';customZones=['z2h','z3h','z4h','z5h'];document.getElementById('months').value=4;document.getElementById('months-out').textContent='4 months';document.getElementById('type-filter').value='Run';document.getElementById('hr-mode').value='all';document.querySelectorAll('.zone-box').forEach(cb=>cb.checked=['z2h','z3h','z4h','z5h'].includes(cb.value));syncCustomZoneUI();document.getElementById('search').value='';document.getElementById('start-date').value='';document.getElementById('end-date').value='';renderAll();});
 ['search','start-date','end-date'].forEach(id=>document.getElementById(id).addEventListener('input',()=>renderActivities(filtered())));
+document.getElementById('table-country').addEventListener('change',()=>renderActivities(filtered()));
 document.getElementById('map-activity').addEventListener('change',e=>drawSelected(e.target.value));
-document.getElementById('show-all').addEventListener('change',drawAll);
+document.getElementById('show-all').addEventListener('change',()=>drawAll());
+document.getElementById('map-country').addEventListener('change',e=>{
+  mapCountry=e.target.value; mapRegion='all';
+  fillRegionSelect(); fillActivitySelect();
+  if(selLayer){ mapObj.removeLayer(selLayer); selLayer=null; document.getElementById('route-name').textContent='—'; document.getElementById('route-meta').textContent=''; }
+  refreshMap();
+});
+document.getElementById('map-region').addEventListener('change',e=>{
+  mapRegion=e.target.value; fillActivitySelect();
+  if(selLayer){ mapObj.removeLayer(selLayer); selLayer=null; document.getElementById('route-name').textContent='—'; document.getElementById('route-meta').textContent=''; }
+  refreshMap();
+});
 
 function activateTab(target){
   document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===target));
