@@ -3,141 +3,295 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Running Training Dashboard - Fixed</title>
+<title>Thousand Steps</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <style>
-:root {
-  --bg-page:#faf9f6; --bg-primary:#fff; --bg-secondary:#f4f3ee; --bg-tertiary:#ebeae3;
-  --text-primary:#1a1a1a; --text-secondary:#5f5e5a; --text-tertiary:#888780;
-  --border:rgba(0,0,0,.10); --border-strong:rgba(0,0,0,.18);
-  --success:#0F6E56; --danger:#A32D2D; --warning:#BA7517; --accent:#534AB7;
-  --radius-md:8px; --radius-lg:12px;
+:root{
+  --bg:#e7e9ec; --surface:#fff; --surface-2:#f4f5f7;
+  --ink:#1b1d1f; --ink-2:#34383c;
+  --lime:#c8f23e; --lime-dim:#def58a;
+  --text:#1b1d1f; --muted:#83888f; --faint:#a7acb3;
+  --line:rgba(20,22,24,.08); --line-2:rgba(20,22,24,.14);
+  --r-card:22px; --r-mid:16px; --r-sm:12px;
+  --shadow:0 1px 2px rgba(16,24,32,.04), 0 10px 30px rgba(16,30,45,.05);
+  --rail:68px;
 }
-@media (prefers-color-scheme: dark) {
-  :root { --bg-page:#1a1a1a; --bg-primary:#242424; --bg-secondary:#2e2e2e; --bg-tertiary:#383838; --text-primary:#f5f5f0; --text-secondary:#b4b2a9; --text-tertiary:#888780; --border:rgba(255,255,255,.10); --border-strong:rgba(255,255,255,.18); --success:#5DCAA5; --danger:#E24B4A; --warning:#E0A653; }
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:
+  radial-gradient(1200px 600px at 18% -10%, #f1f2f4 0%, rgba(241,242,244,0) 60%), var(--bg);
+  color:var(--text);line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100vh}
+.shell{display:flex;gap:18px;padding:18px;max-width:1320px;margin:0 auto}
+
+.rail{width:var(--rail);flex:0 0 var(--rail);position:sticky;top:18px;height:calc(100vh - 36px);
+  background:var(--surface);border-radius:var(--r-card);box-shadow:var(--shadow);
+  display:flex;flex-direction:column;align-items:center;padding:16px 0;gap:10px}
+.brand{width:40px;height:40px;border-radius:13px;background:var(--ink);color:var(--lime);
+  display:grid;place-items:center;font-size:22px;margin-bottom:6px}
+.rail-spacer{flex:1}
+.rail-btn{width:42px;height:42px;border-radius:50%;border:1px solid var(--line);background:var(--surface);
+  color:var(--muted);display:grid;place-items:center;font-size:19px;cursor:pointer;transition:.15s;padding:0}
+.rail-btn:hover{color:var(--ink);border-color:var(--line-2)}
+.rail-btn.active{background:var(--lime);border-color:var(--lime);color:var(--ink)}
+.rail-time{font-family:'Space Grotesk';font-size:11px;color:var(--faint);margin-top:4px}
+
+.main{flex:1;min-width:0}
+.topbar{display:flex;align-items:center;gap:14px;margin-bottom:18px;flex-wrap:wrap}
+.greet{font-size:13px;color:var(--muted)}
+.greet b{display:block;font-size:15px;color:var(--ink);font-weight:600}
+.note{font-size:12px;color:var(--faint);font-family:'Space Grotesk'}
+.spacer{flex:1}
+.pill{display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 16px;border-radius:999px;
+  background:var(--surface);border:1px solid var(--line);font-size:13px;color:var(--ink);box-shadow:var(--shadow)}
+.pill i{color:var(--muted);font-size:16px}
+.pill.dark{background:var(--ink);color:#fff;border-color:var(--ink)}
+.pill.dark i{color:var(--lime)}
+
+.head{display:flex;align-items:flex-end;gap:14px;margin:2px 0 20px}
+.title{font-family:'Space Grotesk';font-weight:700;font-size:40px;letter-spacing:-.02em;line-height:1}
+.title .thin{color:var(--faint);font-weight:500;display:block;font-size:21px;letter-spacing:0;margin-bottom:2px}
+.title .badge-dot{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:50%;
+  background:var(--lime);color:var(--ink);font-size:18px;vertical-align:6px;margin-left:8px}
+.head .sub{font-size:13px;color:var(--muted);margin-bottom:5px}
+
+.tabs{display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap}
+.tab{padding:9px 16px;border-radius:999px;background:var(--surface);border:1px solid var(--line);
+  color:var(--muted);font-family:inherit;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;transition:.15s}
+.tab:hover{color:var(--ink)}
+.tab.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+.tab-panel{display:none} .tab-panel.active{display:block}
+
+.controls{background:var(--surface);border-radius:var(--r-card);box-shadow:var(--shadow);padding:18px 20px;margin-bottom:18px;
+  display:grid;grid-template-columns:1.1fr .9fr 1.4fr auto;gap:22px;align-items:center}
+.control-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px}
+.control-label{font-size:12px;color:var(--muted)} .control-value{font-size:12px;font-weight:600;font-family:'Space Grotesk'}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:5px;background:var(--surface-2);border:1px solid var(--line);border-radius:999px;outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:18px;height:18px;border-radius:50%;background:var(--lime);cursor:pointer;border:3px solid var(--surface);box-shadow:0 0 0 1px var(--line-2)}
+input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:var(--lime);cursor:pointer;border:3px solid var(--surface)}
+select{width:100%;height:38px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--surface-2);color:var(--ink);font-family:inherit;font-size:13px;padding:0 12px}
+button.btn{background:var(--ink);border:1px solid var(--ink);color:#fff;padding:0 18px;height:38px;border-radius:999px;font-family:inherit;font-size:13px;cursor:pointer;white-space:nowrap}
+button.btn:hover{background:var(--ink-2)}
+.zone-checks{display:none;gap:8px;flex-wrap:wrap;margin-top:9px}.zone-checks.active{display:flex}
+.zone-chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:4px 9px}.zone-chip input{margin:0;accent-color:var(--ink)}
+
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(184px,1fr));gap:14px;margin-bottom:18px}
+.kpi{background:var(--surface);border-radius:var(--r-mid);box-shadow:var(--shadow);padding:18px 18px 16px;position:relative;overflow:hidden}
+.kpi::after{content:"";position:absolute;right:-26px;top:-26px;width:64px;height:64px;border-radius:50%;background:var(--surface-2)}
+.kpi:first-child::after{background:var(--lime);opacity:.16}
+.kpi-label{font-size:12px;color:var(--muted);margin-bottom:8px;position:relative}
+.kpi-value{font-family:'Space Grotesk';font-size:27px;font-weight:600;line-height:1.05;letter-spacing:-.01em;font-variant-numeric:tabular-nums;position:relative}
+.kpi-sub{font-size:11px;color:var(--faint);margin-top:6px;position:relative}
+
+.chart-row{display:grid;grid-template-columns:1.25fr 1fr;gap:16px;margin-bottom:16px}
+.chart-row.even{grid-template-columns:1fr 1fr}
+.card{background:var(--surface);border-radius:var(--r-card);box-shadow:var(--shadow);padding:18px 22px;margin-bottom:16px}
+.card-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px;gap:12px}
+.card-head h3{margin:0;font-size:14px;font-weight:600}
+.hint{font-size:11px;color:var(--faint);background:var(--surface-2);padding:3px 10px;border-radius:999px}
+.bigstats{display:flex;gap:26px;margin:2px 0 10px}
+.bigstat .v{font-family:'Space Grotesk';font-size:30px;font-weight:600;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+.bigstat .l{font-size:11px;color:var(--muted)}
+.chart-wrap{position:relative;width:100%;height:280px} .chart-wrap.tall{height:340px}
+.insight{background:var(--surface);border-radius:var(--r-card);box-shadow:var(--shadow);padding:16px 20px;display:flex;gap:14px;align-items:flex-start;margin-bottom:16px}
+.insight i{font-size:18px;color:var(--ink);background:var(--lime);width:34px;height:34px;border-radius:50%;display:grid;place-items:center;flex-shrink:0}
+.insight-text{font-size:13px;color:var(--muted);line-height:1.65} .insight-text strong{color:var(--ink);font-weight:600}
+
+.table-wrap{overflow:auto;max-height:520px} table{width:100%;border-collapse:collapse;font-size:12px}
+th{position:sticky;top:0;background:var(--surface);text-align:left;font-weight:600;color:var(--faint);font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;padding:9px 10px;border-bottom:1px solid var(--line);z-index:1}
+td{padding:9px 10px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums;white-space:nowrap}
+td.name{max-width:340px;overflow:hidden;text-overflow:ellipsis;font-weight:500} .right{text-align:right}
+tbody tr:hover{background:var(--surface-2)}
+.badge{display:inline-block;font-size:10px;padding:2px 8px;border-radius:999px;background:var(--surface-2);color:var(--muted)}
+.badge.g{background:rgba(200,242,62,.32);color:#4d6310} .badge.s{background:var(--surface-2);color:var(--muted)}
+.filter-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px}
+input[type=text],input[type=date]{width:100%;height:38px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--surface-2);color:var(--ink);font-family:inherit;font-size:13px;padding:0 12px}
+
+.map-layout{display:grid;grid-template-columns:300px 1fr;gap:16px}
+#map{height:560px;border-radius:var(--r-mid);overflow:hidden;z-index:0}
+.leaflet-container{background:#eef0f2;font-family:inherit}
+.map-side .row{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.switch{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--ink);cursor:pointer}
+.switch input{accent-color:var(--ink);width:16px;height:16px}
+.route-stat{font-family:'Space Grotesk';font-variant-numeric:tabular-nums}
+
+@media(max-width:900px){
+  .shell{flex-direction:column}
+  .rail{flex-direction:row;width:auto;height:auto;position:static;justify-content:flex-start;overflow-x:auto}
+  .rail-spacer,.rail-time{display:none}
+  .controls,.chart-row,.chart-row.even,.filter-row,.map-layout{grid-template-columns:1fr}
+  #map{height:380px}
 }
-*{box-sizing:border-box} body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg-page);color:var(--text-primary);margin:0;padding:32px 24px;line-height:1.5;-webkit-font-smoothing:antialiased} .container{max-width:1180px;margin:0 auto}
-h1{margin:.15rem 0 1.25rem;font-size:28px;font-weight:500;letter-spacing:-.02em} h3{margin:0;font-size:14px;font-weight:500} .label{font-size:13px;color:var(--text-secondary);letter-spacing:.02em} .hint{font-size:12px;color:var(--text-tertiary)}
-.tabs{display:flex;gap:4px;margin-bottom:1rem;border-bottom:.5px solid var(--border);overflow-x:auto} .tab{padding:10px 16px;background:transparent;border:none;border-bottom:2px solid transparent;color:var(--text-secondary);font-family:inherit;font-size:13px;cursor:pointer;white-space:nowrap} .tab.active{color:var(--text-primary);border-bottom-color:var(--text-primary);font-weight:500} .tab-panel{display:none} .tab-panel.active{display:block}
-.controls{background:var(--bg-secondary);border-radius:var(--radius-md);padding:16px 18px;margin-bottom:1.25rem;display:grid;grid-template-columns:1.05fr .85fr 1.35fr auto;gap:18px;align-items:center} .control-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px} .control-label{font-size:12px;color:var(--text-secondary)} .control-value{font-size:13px;font-weight:500} input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:4px;background:var(--border-strong);border-radius:2px;outline:none} input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:18px;height:18px;border-radius:50%;background:var(--text-primary);cursor:pointer;border:2px solid var(--bg-primary);box-shadow:0 0 0 1px var(--border-strong)} select{width:100%;height:34px;border:.5px solid var(--border-strong);border-radius:var(--radius-md);background:var(--bg-primary);color:var(--text-primary);font-family:inherit;font-size:13px;padding:0 10px} button{background:transparent;border:.5px solid var(--border-strong);color:var(--text-primary);padding:8px 14px;border-radius:var(--radius-md);font-family:inherit;font-size:13px;cursor:pointer;white-space:nowrap} button:hover{background:var(--bg-secondary)} .zone-checks{display:none;gap:8px;flex-wrap:wrap;margin-top:8px}.zone-checks.active{display:flex}.zone-chip{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--text-secondary);background:var(--bg-primary);border:.5px solid var(--border);border-radius:999px;padding:3px 8px}.zone-chip input{margin:0}
-.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:1.5rem} .kpi{background:var(--bg-secondary);border-radius:var(--radius-md);padding:14px 16px} .kpi-label{font-size:12px;color:var(--text-secondary);margin-bottom:4px} .kpi-value{font-size:22px;font-weight:500;line-height:1.2} .kpi-sub{font-size:11px;color:var(--text-tertiary);margin-top:4px} .success{color:var(--success)} .warning{color:var(--warning)}
-.chart-row{display:grid;grid-template-columns:1.15fr 1fr;gap:16px;margin-bottom:1.5rem} .chart-row.even{grid-template-columns:1fr 1fr} .card{background:var(--bg-primary);border:.5px solid var(--border);border-radius:var(--radius-lg);padding:16px 20px;margin-bottom:1rem} .card-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px;gap:12px} .chart-wrap{position:relative;width:100%;height:280px} .chart-wrap.tall{height:360px}
-.insight{background:var(--bg-secondary);border-radius:var(--radius-lg);padding:14px 18px;display:flex;gap:14px;align-items:flex-start;margin-bottom:1rem} .insight i{font-size:18px;color:var(--text-secondary);margin-top:2px;flex-shrink:0} .insight-text{font-size:13px;color:var(--text-secondary);line-height:1.6} .insight-text strong{color:var(--text-primary);font-weight:500}
-.table-wrap{overflow:auto;max-height:520px} table{width:100%;border-collapse:collapse;font-size:12px} th{position:sticky;top:0;background:var(--bg-primary);text-align:left;font-weight:500;color:var(--text-tertiary);font-size:11px;padding:8px 10px;border-bottom:.5px solid var(--border);z-index:1} td{padding:8px 10px;border-bottom:.5px dashed var(--border);font-variant-numeric:tabular-nums;white-space:nowrap} td.name{max-width:340px;overflow:hidden;text-overflow:ellipsis} .right{text-align:right} .badge{display:inline-block;font-size:10px;padding:2px 6px;border-radius:4px;background:var(--bg-tertiary);color:var(--text-secondary)} .badge.g{background:rgba(15,110,86,.12);color:var(--success)} .badge.s{background:rgba(186,117,23,.14);color:var(--warning)}
-.filter-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px} input[type=text], input[type=date]{width:100%;height:34px;border:.5px solid var(--border);border-radius:var(--radius-md);background:var(--bg-primary);color:var(--text-primary);font-family:inherit;font-size:13px;padding:0 10px}
-@media(max-width:820px){body{padding:20px 14px} .controls,.chart-row,.chart-row.even,.filter-row{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
-<div class="container">
-  <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:4px;gap:12px;flex-wrap:wrap">
-    <div class="label">Running dashboard · Garmin primary + Strava titles</div>
-    <div class="hint" id="data-note"></div>
-  </div>
-  <h1>Training dashboard</h1>
+<div class="shell">
+  <aside class="rail">
+    <div class="brand"><i class="ti ti-asterisk"></i></div>
+    <button class="rail-btn active" data-tab="overview" title="Overview"><i class="ti ti-chart-histogram"></i></button>
+    <button class="rail-btn" data-tab="elevation" title="Elevation"><i class="ti ti-mountain"></i></button>
+    <button class="rail-btn" data-tab="heart" title="Heart rate"><i class="ti ti-heartbeat"></i></button>
+    <button class="rail-btn" data-tab="readiness" title="Iceland readiness"><i class="ti ti-flag"></i></button>
+    <button class="rail-btn" data-tab="map" title="Map"><i class="ti ti-map-2"></i></button>
+    <button class="rail-btn" data-tab="activities" title="Activities"><i class="ti ti-list-details"></i></button>
+    <div class="rail-spacer"></div>
+    <div class="rail-time" id="clock">—</div>
+  </aside>
 
-  <div class="tabs">
-    <button class="tab active" data-tab="overview">Overview</button>
-    <button class="tab" data-tab="elevation">Elevation</button>
-    <button class="tab" data-tab="heart">Heart rate</button>
-    <button class="tab" data-tab="readiness">Iceland readiness</button>
-    <button class="tab" data-tab="activities">Activity explorer</button>
-  </div>
+  <main class="main">
+    <div class="topbar">
+      <div class="brand" style="border-radius:50%"><i class="ti ti-run"></i></div>
+      <div class="greet">Welcome back,<b>Thousand Steps</b></div>
+      <div class="spacer"></div>
+      <div class="note" id="data-note"></div>
+      <div class="pill"><i class="ti ti-calendar"></i><span id="range-pill">—</span></div>
+      <div class="pill dark"><i class="ti ti-chart-line"></i>Weekly</div>
+    </div>
 
-  <div class="controls">
-    <div>
-      <div class="control-row"><label class="control-label">Lookback window</label><span id="months-out" class="control-value">4 months</span></div>
-      <input type="range" min="1" max="48" value="4" id="months" step="1" />
+    <div class="head">
+      <div class="title"><span class="thin">Training</span>Thousand Steps<span class="badge-dot"><i class="ti ti-bolt"></i></span></div>
+      <div class="spacer"></div>
+      <div class="sub">Garmin metrics &amp; HR zones · Strava titles · GPS routes</div>
     </div>
-    <div>
-      <div class="control-row"><label class="control-label">Activity type</label><span class="control-value">filter</span></div>
-      <select id="type-filter"><option value="Run">Run only</option><option value="all">All activities</option><option value="Ride">Ride</option><option value="Walk">Walk/Hike</option></select>
+
+    <div class="tabs">
+      <button class="tab active" data-tab="overview">Overview</button>
+      <button class="tab" data-tab="elevation">Elevation</button>
+      <button class="tab" data-tab="heart">Heart rate</button>
+      <button class="tab" data-tab="readiness">Iceland readiness</button>
+      <button class="tab" data-tab="map">Map</button>
+      <button class="tab" data-tab="activities">Activity explorer</button>
     </div>
-    <div>
-      <div class="control-row"><label class="control-label">Elevated HR definition</label><span class="control-value">Garmin zones</span></div>
-      <select id="hr-mode">
-        <option value="all">All elevated: Z2–Z5</option>
-        <option value="z2">Zone 2 only</option>
-        <option value="z3">Zone 3 only</option>
-        <option value="z4">Zone 4 only</option>
-        <option value="z5">Zone 5 only</option>
-        <option value="z3plus">Zone 3+</option>
-        <option value="z4plus">Zone 4+</option>
-        <option value="custom">Custom zones</option>
-      </select>
-      <div id="custom-zones" class="zone-checks">
-        <label class="zone-chip"><input type="checkbox" class="zone-box" value="z2h" checked> Z2</label>
-        <label class="zone-chip"><input type="checkbox" class="zone-box" value="z3h" checked> Z3</label>
-        <label class="zone-chip"><input type="checkbox" class="zone-box" value="z4h" checked> Z4</label>
-        <label class="zone-chip"><input type="checkbox" class="zone-box" value="z5h" checked> Z5</label>
+
+    <div class="controls">
+      <div>
+        <div class="control-row"><label class="control-label">Lookback window</label><span id="months-out" class="control-value">4 months</span></div>
+        <input type="range" min="1" max="48" value="4" id="months" step="1" />
+      </div>
+      <div>
+        <div class="control-row"><label class="control-label">Activity type</label><span class="control-value">filter</span></div>
+        <select id="type-filter"><option value="Run">Run only</option><option value="all">All activities</option><option value="Ride">Ride</option><option value="Walk">Walk/Hike</option></select>
+      </div>
+      <div>
+        <div class="control-row"><label class="control-label">Elevated HR definition</label><span class="control-value">Garmin zones</span></div>
+        <select id="hr-mode">
+          <option value="all">All elevated: Z2–Z5</option>
+          <option value="z2">Zone 2 only</option>
+          <option value="z3">Zone 3 only</option>
+          <option value="z4">Zone 4 only</option>
+          <option value="z5">Zone 5 only</option>
+          <option value="z3plus">Zone 3+</option>
+          <option value="z4plus">Zone 4+</option>
+          <option value="custom">Custom zones</option>
+        </select>
+        <div id="custom-zones" class="zone-checks">
+          <label class="zone-chip"><input type="checkbox" class="zone-box" value="z2h" checked> Z2</label>
+          <label class="zone-chip"><input type="checkbox" class="zone-box" value="z3h" checked> Z3</label>
+          <label class="zone-chip"><input type="checkbox" class="zone-box" value="z4h" checked> Z4</label>
+          <label class="zone-chip"><input type="checkbox" class="zone-box" value="z5h" checked> Z5</label>
+        </div>
+      </div>
+      <button class="btn" id="reset"><i class="ti ti-refresh" style="vertical-align:-2px;margin-right:5px"></i>Reset</button>
+    </div>
+
+    <div id="tab-overview" class="tab-panel active">
+      <div id="kpis" class="kpi-grid"></div>
+      <div class="chart-row">
+        <div class="card">
+          <div class="card-head"><h3>Weekly mileage &amp; elevation</h3><span class="hint">Filtered window</span></div>
+          <div class="bigstats">
+            <div class="bigstat"><div class="v" id="wk-miles">—</div><div class="l">miles in window</div></div>
+            <div class="bigstat"><div class="v" id="wk-vert">—</div><div class="l">ft climbed</div></div>
+          </div>
+          <div class="chart-wrap tall"><canvas id="weeklyChart"></canvas></div>
+        </div>
+        <div class="card"><div class="card-head"><h3>Training mix by source</h3><span class="hint">Garmin vs Strava-only</span></div><div class="chart-wrap tall"><canvas id="sourceChart"></canvas></div></div>
+      </div>
+      <div class="insight"><i class="ti ti-info-circle"></i><div id="overview-insight" class="insight-text"></div></div>
+    </div>
+
+    <div id="tab-elevation" class="tab-panel">
+      <div id="elev-kpis" class="kpi-grid"></div>
+      <div class="chart-row even">
+        <div class="card"><div class="card-head"><h3>Weekly vertical gain/loss</h3><span class="hint">Downhill durability</span></div><div class="chart-wrap tall"><canvas id="vertChart"></canvas></div></div>
+        <div class="card"><div class="card-head"><h3>Top climbing days</h3><span class="hint">Best specificity</span></div><div class="table-wrap"><table><thead><tr><th>Date</th><th>Activity</th><th class="right">Miles</th><th class="right">Gain</th><th class="right">Loss</th></tr></thead><tbody id="top-vert"></tbody></table></div></div>
       </div>
     </div>
-    <button id="reset"><i class="ti ti-refresh" style="vertical-align:-2px;margin-right:4px"></i>Reset</button>
-  </div>
 
-  <div id="tab-overview" class="tab-panel active">
-    <div id="kpis" class="kpi-grid"></div>
-    <div class="chart-row">
-      <div class="card"><div class="card-head"><h3>Weekly mileage & elevation</h3><span class="hint">Filtered window</span></div><div class="chart-wrap tall"><canvas id="weeklyChart"></canvas></div></div>
-      <div class="card"><div class="card-head"><h3>Training mix by source</h3><span class="hint">Garmin vs Strava-only</span></div><div class="chart-wrap"><canvas id="sourceChart"></canvas></div></div>
+    <div id="tab-heart" class="tab-panel">
+      <div id="hr-kpis" class="kpi-grid"></div>
+      <div class="chart-row even">
+        <div class="card"><div class="card-head"><h3>Heart-rate zone distribution</h3><span class="hint">Garmin only</span></div><div class="chart-wrap tall"><canvas id="zoneChart"></canvas></div></div>
+        <div class="card"><div class="card-head"><h3>Weekly elevated HR time</h3><span class="hint" id="hr-chart-label">Zone 3+</span></div><div class="chart-wrap tall"><canvas id="elevHrChart"></canvas></div></div>
+      </div>
+      <div class="insight"><i class="ti ti-heart-rate-monitor"></i><div id="hr-insight" class="insight-text"></div></div>
     </div>
-    <div class="insight"><i class="ti ti-info-circle"></i><div id="overview-insight" class="insight-text"></div></div>
-  </div>
 
-  <div id="tab-elevation" class="tab-panel">
-    <div id="elev-kpis" class="kpi-grid"></div>
-    <div class="chart-row even">
-      <div class="card"><div class="card-head"><h3>Weekly vertical gain/loss</h3><span class="hint">Downhill durability proxy</span></div><div class="chart-wrap tall"><canvas id="vertChart"></canvas></div></div>
-      <div class="card"><div class="card-head"><h3>Top climbing days</h3><span class="hint">Best specificity sessions</span></div><div class="table-wrap"><table><thead><tr><th>Date</th><th>Activity</th><th class="right">Miles</th><th class="right">Gain</th><th class="right">Loss</th></tr></thead><tbody id="top-vert"></tbody></table></div></div>
+    <div id="tab-readiness" class="tab-panel">
+      <div id="ready-kpis" class="kpi-grid"></div>
+      <div class="chart-row even">
+        <div class="card"><div class="card-head"><h3>Specificity markers</h3><span class="hint">Filtered window</span></div><div class="chart-wrap tall"><canvas id="specificityChart"></canvas></div></div>
+        <div class="card"><div class="card-head"><h3>Longest / biggest efforts</h3><span class="hint">Run only</span></div><div class="table-wrap"><table><thead><tr><th>Date</th><th>Activity</th><th class="right">Miles</th><th class="right">Gain</th><th class="right" id="effort-hr-head">Elevated HR</th></tr></thead><tbody id="big-efforts"></tbody></table></div></div>
+      </div>
     </div>
-  </div>
 
-  <div id="tab-heart" class="tab-panel">
-    <div id="hr-kpis" class="kpi-grid"></div>
-    <div class="chart-row even">
-      <div class="card"><div class="card-head"><h3>Heart-rate zone distribution</h3><span class="hint">Garmin activities only</span></div><div class="chart-wrap"><canvas id="zoneChart"></canvas></div></div>
-      <div class="card"><div class="card-head"><h3>Weekly elevated HR time</h3><span class="hint" id="hr-chart-label">Zone 3+</span></div><div class="chart-wrap"><canvas id="elevHrChart"></canvas></div></div>
+    <div id="tab-map" class="tab-panel">
+      <div id="map-kpis" class="kpi-grid"></div>
+      <div class="card">
+        <div class="card-head"><h3>Where you ran</h3><span class="hint" id="map-note">GPS routes</span></div>
+        <div class="map-layout">
+          <div class="map-side">
+            <div class="row"><label class="switch"><input type="checkbox" id="show-all" checked> Show all routes</label></div>
+            <div class="control-row"><label class="control-label">Highlight a run</label></div>
+            <select id="map-activity"><option value="">Select an activity…</option></select>
+            <div class="card" style="margin-top:14px;box-shadow:none;border:1px solid var(--line);padding:14px 16px">
+              <div class="kpi-label">Selected route</div>
+              <div class="kpi-value route-stat" id="route-name" style="font-size:16px">—</div>
+              <div class="kpi-sub" id="route-meta"></div>
+            </div>
+          </div>
+          <div id="map"></div>
+        </div>
+      </div>
     </div>
-    <div class="insight"><i class="ti ti-heart-rate-monitor"></i><div id="hr-insight" class="insight-text"></div></div>
-  </div>
 
-  <div id="tab-readiness" class="tab-panel">
-    <div id="ready-kpis" class="kpi-grid"></div>
-    <div class="chart-row even">
-      <div class="card"><div class="card-head"><h3>Specificity markers</h3><span class="hint">Filtered window</span></div><div class="chart-wrap"><canvas id="specificityChart"></canvas></div></div>
-      <div class="card"><div class="card-head"><h3>Longest / biggest efforts</h3><span class="hint">Run only</span></div><div class="table-wrap"><table><thead><tr><th>Date</th><th>Activity</th><th class="right">Miles</th><th class="right">Gain</th><th class="right" id="effort-hr-head">Elevated HR</th></tr></thead><tbody id="big-efforts"></tbody></table></div></div>
+    <div id="tab-activities" class="tab-panel">
+      <div class="filter-row"><input id="search" type="text" placeholder="Search Strava title…"><input id="start-date" type="date"><input id="end-date" type="date"></div>
+      <div class="card"><div class="card-head"><h3>Activity explorer</h3><span class="hint" id="activity-count"></span></div><div class="table-wrap"><table><thead><tr><th>Date</th><th>Title</th><th>Source</th><th class="right">Miles</th><th class="right">Gain</th><th class="right">Avg HR</th><th class="right" id="activity-hr-head">Elevated HR</th><th class="right">TE</th></tr></thead><tbody id="activity-table"></tbody></table></div></div>
     </div>
-  </div>
-
-  <div id="tab-activities" class="tab-panel">
-    <div class="filter-row"><input id="search" type="text" placeholder="Search Strava title…"><input id="start-date" type="date"><input id="end-date" type="date"></div>
-    <div class="card"><div class="card-head"><h3>Activity explorer</h3><span class="hint" id="activity-count"></span></div><div class="table-wrap"><table><thead><tr><th>Date</th><th>Title</th><th>Source</th><th class="right">Miles</th><th class="right">Gain</th><th class="right">Avg HR</th><th class="right" id="activity-hr-head">Elevated HR</th><th class="right">TE</th></tr></thead><tbody id="activity-table"></tbody></table></div></div>
-  </div>
+  </main>
 </div>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
+const T = { lime:'#c8f23e', ink:'#1b1d1f', mid:'#9aa0a7', soft:'#cfd4d9', limeFill:'rgba(200,242,62,.20)' };
+Chart.defaults.font.family = "'Space Grotesk','Inter',sans-serif";
+Chart.defaults.font.size = 11;
+Chart.defaults.color = '#83888f';
+Chart.defaults.plugins.legend.labels.usePointStyle = true;
+
 let ACTIVITIES = [];
 async function loadActivities(){
   const note = document.getElementById('data-note');
   try {
-    if (note) note.textContent = 'Loading activity data…';
+    if (note) note.textContent = 'Loading…';
     const res = await fetch('activities.json', {cache:'no-store'});
     if (!res.ok) throw new Error('Could not load activities.json');
     ACTIVITIES = await res.json();
-    if (note) note.textContent = `${ACTIVITIES.length.toLocaleString()} activities loaded`;
     syncCustomZoneUI();
     renderAll();
   } catch (err) {
     console.error(err);
-    if (note) note.textContent = 'Could not load activities.json. Keep this HTML file in the same folder as activities.json.';
-    document.getElementById('kpis').innerHTML = '<div class="kpi"><div class="kpi-label">Data load issue</div><div class="kpi-value">Missing JSON</div><div class="kpi-sub">Keep activities.json beside this HTML file.</div></div>';
+    if (note) note.textContent = 'Could not load activities.json. Keep this file beside activities.json.';
+    document.getElementById('kpis').innerHTML = '<div class="kpi"><div class="kpi-label">Data load issue</div><div class="kpi-value">Missing JSON</div><div class="kpi-sub">Keep activities.json beside this file.</div></div>';
   }
 }
 
-const SUMMARY = {"totalRecords": 1428, "garminRecords": 948, "stravaOnly": 480, "matched": 601, "withHrZones": 258, "minDate": "2021-01-16", "maxDate": "2026-06-17"};
+const SUMMARY = {"totalRecords": 1283, "garminRecords": 951, "stravaOnly": 332, "matched": 749, "withHrZones": 945, "minDate": "2021-01-16", "maxDate": "2026-06-21"};
 const TODAY = new Date(SUMMARY.maxDate + 'T12:00:00');
 let months = 4, typeFilter = 'Run', hrMode = 'all';
 let customZones = ['z2h','z3h','z4h','z5h'];
@@ -171,10 +325,7 @@ function elevated(a){
   if(hrMode==='custom') return customZones.reduce((s,k)=>s+(a[k]||0),0);
   return 0;
 }
-function syncCustomZoneUI(){
-  const el=document.getElementById('custom-zones');
-  if(el) el.classList.toggle('active', hrMode==='custom');
-}
+function syncCustomZoneUI(){const el=document.getElementById('custom-zones');if(el) el.classList.toggle('active', hrMode==='custom');}
 function filtered(){let s=startWindow(); return ACTIVITIES.filter(a=>activityDate(a)>=s && activityDate(a)<=TODAY && typeMatch(a));}
 function byWeek(rows){
   const out={}; rows.forEach(a=>{ const d=activityDate(a); const day=(d.getDay()+6)%7; d.setDate(d.getDate()-day); const key=d.toISOString().slice(0,10); if(!out[key]) out[key]={week:key,miles:0,gain:0,loss:0,hours:0,elevHr:0,z3:0,z4:0,z5:0,count:0}; out[key].miles+=a.distanceMi||0; out[key].gain+=a.elevGainFt||0; out[key].loss+=a.elevLossFt||0; out[key].hours+=a.movingHours||0; out[key].elevHr+=elevated(a); out[key].z3+=a.z3h||0; out[key].z4+=a.z4h||0; out[key].z5+=a.z5h||0; out[key].count++; }); return Object.values(out).sort((a,b)=>a.week.localeCompare(b.week));
@@ -183,7 +334,7 @@ function sum(rows,k){return rows.reduce((s,a)=>s+(a[k]||0),0)}
 function avg(rows,k){let vals=rows.map(a=>a[k]).filter(v=>v!==null&&v!==undefined&&v>0);return vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:0}
 function destroy(id){ if(charts[id]){charts[id].destroy(); delete charts[id];} }
 function makeChart(id, cfg){ destroy(id); charts[id]=new Chart(document.getElementById(id), cfg); }
-function baseOpts(){return {responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'bottom',labels:{boxWidth:10,boxHeight:10,font:{size:11},padding:12}},tooltip:{callbacks:{label:(c)=>c.dataset.label+': '+(c.dataset.yUnit==='hr'?hrs(c.parsed.y)+' hr':moneyish(c.parsed.y)+(c.dataset.yUnit||''))}}},scales:{x:{grid:{display:false},ticks:{font:{size:11},maxRotation:0,autoSkipPadding:18}},y:{grid:{color:'rgba(120,120,120,.12)'},ticks:{font:{size:11}}}}};}
+function baseOpts(){return {responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'bottom',labels:{boxWidth:8,boxHeight:8,font:{size:11},padding:14}},tooltip:{backgroundColor:T.ink,padding:10,cornerRadius:10,boxPadding:4,callbacks:{label:(c)=>c.dataset.label+': '+(c.dataset.yUnit==='hr'?hrs(c.parsed.y)+' hr':moneyish(c.parsed.y)+(c.dataset.yUnit||''))}}},scales:{x:{grid:{display:false},border:{display:false},ticks:{font:{size:11},maxRotation:0,autoSkipPadding:18}},y:{grid:{color:'rgba(20,22,24,.06)'},border:{display:false},ticks:{font:{size:11}}}}};}
 function sourceBadge(s){return s==='Garmin + Strava'?'<span class="badge g">Garmin + Strava</span>':(s==='Garmin Only'?'<span class="badge g">Garmin only</span>':'<span class="badge s">Strava only</span>')}
 function renderKPIs(rows){
   const weeks=Math.max(1, byWeek(rows).length); const z=elevatedTotals(rows); const longRuns=rows.filter(a=>a.distanceMi>=15).length; const bigVert=rows.filter(a=>a.elevGainFt>=3000).length;
@@ -192,26 +343,28 @@ function renderKPIs(rows){
 function elevatedTotals(rows){return rows.reduce((s,a)=>s+elevated(a),0)}
 function renderOverview(rows){
   renderKPIs(rows); const w=byWeek(rows); const labels=w.map(x=>x.week.slice(5));
-  makeChart('weeklyChart',{type:'bar',data:{labels,datasets:[{label:'Miles',data:w.map(x=>+x.miles.toFixed(1)),borderRadius:4,yAxisID:'y'},{type:'line',label:'Elevation gain',data:w.map(x=>Math.round(x.gain)),tension:.25,pointRadius:2,yAxisID:'y1',yUnit:' ft'}]},options:{...baseOpts(),scales:{x:{grid:{display:false},ticks:{font:{size:11},maxRotation:0,autoSkipPadding:16}},y:{position:'left',grid:{color:'rgba(120,120,120,.12)'},title:{display:true,text:'Miles'}},y1:{position:'right',grid:{drawOnChartArea:false},title:{display:true,text:'Feet'}}}}});
-  const src={}; rows.forEach(a=>src[a.source]=(src[a.source]||0)+(a.distanceMi||0)); makeChart('sourceChart',{type:'doughnut',data:{labels:Object.keys(src),datasets:[{data:Object.values(src)}]},options:{responsive:true,maintainAspectRatio:false,cutout:'58%',plugins:{legend:{position:'bottom',labels:{boxWidth:10,boxHeight:10,font:{size:11}}},tooltip:{callbacks:{label:(c)=>c.label+': '+mi(c.parsed)+' mi'}}}}});
-  const garminMiles=sum(rows.filter(a=>a.source!=='Strava Only'),'distanceMi'); const totalMiles=sum(rows,'distanceMi'); document.getElementById('overview-insight').innerHTML=`<strong>Current window:</strong> last ${months} months through ${SUMMARY.maxDate}. Garmin covers <strong>${totalMiles?Math.round(garminMiles/totalMiles*100):0}%</strong> of filtered mileage, so elevation/HR analysis should be strongest in the watch era. Strava-only activities remain included for history, titles, and pre-Garmin runs.`;
+  const elMiles=document.getElementById('wk-miles'); if(elMiles) elMiles.textContent=mi(sum(rows,'distanceMi'));
+  const elVert=document.getElementById('wk-vert'); if(elVert) elVert.textContent=moneyish(sum(rows,'elevGainFt'));
+  makeChart('weeklyChart',{type:'bar',data:{labels,datasets:[{label:'Miles',data:w.map(x=>+x.miles.toFixed(1)),backgroundColor:T.lime,borderRadius:7,maxBarThickness:20,yAxisID:'y'},{type:'line',label:'Elevation gain',data:w.map(x=>Math.round(x.gain)),borderColor:T.ink,backgroundColor:T.ink,borderWidth:2,tension:.35,pointRadius:0,yAxisID:'y1',yUnit:' ft'}]},options:{...baseOpts(),scales:{x:{grid:{display:false},border:{display:false},ticks:{font:{size:11},maxRotation:0,autoSkipPadding:16}},y:{position:'left',grid:{color:'rgba(20,22,24,.06)'},border:{display:false},title:{display:true,text:'Miles'}},y1:{position:'right',grid:{drawOnChartArea:false},border:{display:false},title:{display:true,text:'Feet'}}}}});
+  const src={}; rows.forEach(a=>src[a.source]=(src[a.source]||0)+(a.distanceMi||0)); makeChart('sourceChart',{type:'doughnut',data:{labels:Object.keys(src),datasets:[{data:Object.values(src),backgroundColor:[T.lime,T.ink,T.mid,T.soft],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{position:'bottom',labels:{boxWidth:8,boxHeight:8,font:{size:11},padding:12}},tooltip:{backgroundColor:T.ink,padding:10,cornerRadius:10,callbacks:{label:(c)=>c.label+': '+mi(c.parsed)+' mi'}}}}});
+  const garminMiles=sum(rows.filter(a=>a.source!=='Strava Only'),'distanceMi'); const totalMiles=sum(rows,'distanceMi'); document.getElementById('overview-insight').innerHTML=`<strong>Current window:</strong> last ${months} months through ${SUMMARY.maxDate}. Garmin covers <strong>${totalMiles?Math.round(garminMiles/totalMiles*100):0}%</strong> of filtered mileage, so elevation/HR analysis is strongest in the watch era. Strava-only activities remain included for history, titles, and pre-Garmin runs.`;
 }
 function renderElevation(rows){
   const weeks=byWeek(rows); document.getElementById('elev-kpis').innerHTML=`<div class="kpi"><div class="kpi-label">Total climb</div><div class="kpi-value">${moneyish(sum(rows,'elevGainFt'))} ft</div></div><div class="kpi"><div class="kpi-label">Total descent</div><div class="kpi-value">${moneyish(sum(rows,'elevLossFt'))} ft</div></div><div class="kpi"><div class="kpi-label">Vert per mile</div><div class="kpi-value">${moneyish(sum(rows,'elevGainFt')/Math.max(1,sum(rows,'distanceMi')))}</div><div class="kpi-sub">ft gained / mile</div></div><div class="kpi"><div class="kpi-label">Biggest climb day</div><div class="kpi-value">${moneyish(Math.max(0,...rows.map(a=>a.elevGainFt||0)))} ft</div></div>`;
-  makeChart('vertChart',{type:'bar',data:{labels:weeks.map(x=>x.week.slice(5)),datasets:[{label:'Gain',data:weeks.map(x=>Math.round(x.gain)),borderRadius:4,yUnit:' ft'},{label:'Loss',data:weeks.map(x=>Math.round(x.loss)),borderRadius:4,yUnit:' ft'}]},options:baseOpts()});
+  makeChart('vertChart',{type:'bar',data:{labels:weeks.map(x=>x.week.slice(5)),datasets:[{label:'Gain',data:weeks.map(x=>Math.round(x.gain)),backgroundColor:T.ink,borderRadius:7,maxBarThickness:16,yUnit:' ft'},{label:'Loss',data:weeks.map(x=>Math.round(x.loss)),backgroundColor:T.lime,borderRadius:7,maxBarThickness:16,yUnit:' ft'}]},options:baseOpts()});
   document.getElementById('top-vert').innerHTML=rows.slice().sort((a,b)=>(b.elevGainFt||0)-(a.elevGainFt||0)).slice(0,12).map(a=>`<tr><td>${a.date}</td><td class="name">${a.name}</td><td class="right">${mi(a.distanceMi)}</td><td class="right">${moneyish(a.elevGainFt)} ft</td><td class="right">${moneyish(a.elevLossFt)} ft</td></tr>`).join('');
 }
 function renderHeart(rows){
   const hrRows=rows.filter(a=>a.hasZones); const z=[0,1,2,3,4,5].map(i=>sum(hrRows,'z'+i+'h')); const zTotal=z.reduce((a,b)=>a+b,0); const elevatedHr=elevatedTotals(rows);
   document.getElementById('hr-kpis').innerHTML=`<div class="kpi"><div class="kpi-label">Activities with zones</div><div class="kpi-value">${hrRows.length}</div><div class="kpi-sub">of ${rows.length} filtered</div></div><div class="kpi"><div class="kpi-label">${hrLabel()}</div><div class="kpi-value">${hrs(elevatedHr)} hr</div><div class="kpi-sub">${zTotal?Math.round(elevatedHr/zTotal*100):0}% of Garmin zone time</div></div><div class="kpi"><div class="kpi-label">Z2 / Z3 / Z4+ time</div><div class="kpi-value">${hrs(z[2])} / ${hrs(z[3])} / ${hrs(z[4]+z[5])}</div><div class="kpi-sub">hours</div></div><div class="kpi"><div class="kpi-label">Avg / max HR</div><div class="kpi-value">${Math.round(avg(rows,'avgHr'))} / ${Math.round(Math.max(0,...rows.map(a=>a.maxHr||0)))}</div><div class="kpi-sub">bpm</div></div>`;
-  makeChart('zoneChart',{type:'doughnut',data:{labels:['Z0','Z1','Z2','Z3','Z4','Z5'],datasets:[{data:z.map(v=>+v.toFixed(2))}]},options:{responsive:true,maintainAspectRatio:false,cutout:'58%',plugins:{legend:{position:'bottom',labels:{boxWidth:10,boxHeight:10,font:{size:11}}},tooltip:{callbacks:{label:(c)=>c.label+': '+hrs(c.parsed)+' hr ('+(zTotal?Math.round(c.parsed/zTotal*100):0)+'%)'}}}}});
-  const w=byWeek(rows); document.getElementById('hr-chart-label').textContent=hrLabel(); makeChart('elevHrChart',{type:'line',data:{labels:w.map(x=>x.week.slice(5)),datasets:[{label:document.getElementById('hr-chart-label').textContent,data:w.map(x=>+x.elevHr.toFixed(2)),tension:.25,pointRadius:2,yUnit:'hr'}]},options:baseOpts()});
+  makeChart('zoneChart',{type:'doughnut',data:{labels:['Z0','Z1','Z2','Z3','Z4','Z5'],datasets:[{data:z.map(v=>+v.toFixed(2)),backgroundColor:['#e2e6ea','#cdd3d9','#def58a',T.lime,'#7fae16',T.ink],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{position:'bottom',labels:{boxWidth:8,boxHeight:8,font:{size:11},padding:12}},tooltip:{backgroundColor:T.ink,padding:10,cornerRadius:10,callbacks:{label:(c)=>c.label+': '+hrs(c.parsed)+' hr ('+(zTotal?Math.round(c.parsed/zTotal*100):0)+'%)'}}}}});
+  const w=byWeek(rows); document.getElementById('hr-chart-label').textContent=hrLabel(); makeChart('elevHrChart',{type:'line',data:{labels:w.map(x=>x.week.slice(5)),datasets:[{label:document.getElementById('hr-chart-label').textContent,data:w.map(x=>+x.elevHr.toFixed(2)),borderColor:T.ink,backgroundColor:T.limeFill,fill:true,tension:.35,pointRadius:0,borderWidth:2,yUnit:'hr'}]},options:baseOpts()});
   document.getElementById('hr-insight').innerHTML=`<strong>Elevated HR (${hrLabel()}):</strong> ${hrs(elevatedHr)} hours in the selected window. Zone data comes from Garmin only; Strava-only activities are included in mileage/elevation but not HR-zone totals.`;
 }
 function renderReadiness(rows){
   const runRows=rows.filter(a=>(a.type||'').toLowerCase().includes('run')); const eh=document.getElementById('effort-hr-head'); if(eh) eh.textContent=hrLabel(); const weeks=byWeek(runRows); const miles=sum(runRows,'distanceMi'), gain=sum(runRows,'elevGainFt'), loss=sum(runRows,'elevLossFt'), long15=runRows.filter(a=>a.distanceMi>=15).length, vert3=runRows.filter(a=>a.elevGainFt>=3000).length;
   document.getElementById('ready-kpis').innerHTML=`<div class="kpi"><div class="kpi-label">Laugavegur block miles</div><div class="kpi-value">${mi(miles)}</div><div class="kpi-sub">run filter</div></div><div class="kpi"><div class="kpi-label">Climb / descent</div><div class="kpi-value">${moneyish(gain)} ft</div><div class="kpi-sub">${moneyish(loss)} ft down</div></div><div class="kpi"><div class="kpi-label">Avg weekly vert</div><div class="kpi-value">${moneyish(gain/Math.max(1,weeks.length))} ft</div></div><div class="kpi"><div class="kpi-label">Specific long days</div><div class="kpi-value">${long15} / ${vert3}</div><div class="kpi-sub">≥15 mi / ≥3,000 ft</div></div>`;
-  const data=[{metric:'Total miles',value:miles},{metric:'Climb ft / 100',value:gain/100},{metric:'Descent ft / 100',value:loss/100},{metric:hrLabel()+' ×10',value:elevatedTotals(runRows)*10},{metric:'Long runs ×10',value:long15*10},{metric:'3k vert days ×10',value:vert3*10}]; makeChart('specificityChart',{type:'bar',data:{labels:data.map(d=>d.metric),datasets:[{label:'Specificity index units',data:data.map(d=>Math.round(d.value)),borderRadius:4}]},options:{...baseOpts(),plugins:{legend:{display:false},tooltip:{callbacks:{label:(c)=>c.parsed.y}}}}});
+  const data=[{metric:'Total miles',value:miles},{metric:'Climb ft / 100',value:gain/100},{metric:'Descent ft / 100',value:loss/100},{metric:hrLabel()+' ×10',value:elevatedTotals(runRows)*10},{metric:'Long runs ×10',value:long15*10},{metric:'3k vert days ×10',value:vert3*10}]; makeChart('specificityChart',{type:'bar',data:{labels:data.map(d=>d.metric),datasets:[{label:'Specificity index units',data:data.map(d=>Math.round(d.value)),backgroundColor:T.ink,borderRadius:7,maxBarThickness:34}]},options:{...baseOpts(),plugins:{legend:{display:false},tooltip:{backgroundColor:T.ink,padding:10,cornerRadius:10,callbacks:{label:(c)=>c.parsed.y}}}}});
   document.getElementById('big-efforts').innerHTML=runRows.slice().sort((a,b)=>((b.distanceMi||0)+(b.elevGainFt||0)/1000)-((a.distanceMi||0)+(a.elevGainFt||0)/1000)).slice(0,12).map(a=>`<tr><td>${a.date}</td><td class="name">${a.name}</td><td class="right">${mi(a.distanceMi)}</td><td class="right">${moneyish(a.elevGainFt)} ft</td><td class="right">${hrs(elevated(a))}</td></tr>`).join('');
 }
 function renderActivities(rows){
@@ -219,16 +372,85 @@ function renderActivities(rows){
   let rr=rows.filter(a=>(!q||a.name.toLowerCase().includes(q))&&(!sd||a.date>=sd)&&(!ed||a.date<=ed)); const ah=document.getElementById('activity-hr-head'); if(ah) ah.textContent=hrLabel(); document.getElementById('activity-count').textContent=`${rr.length} shown`; document.getElementById('activity-table').innerHTML=rr.slice(0,400).map(a=>`<tr><td>${a.date}</td><td class="name">${a.name}</td><td>${sourceBadge(a.source)}</td><td class="right">${mi(a.distanceMi)}</td><td class="right">${moneyish(a.elevGainFt)} ft${a.elevCorrection?' <span class="badge" title="'+a.elevCorrection+'">fixed</span>':''}</td><td class="right">${a.avgHr||''}</td><td class="right">${hrs(elevated(a))}</td><td class="right">${a.trainingEffect||''}</td></tr>`).join('');
 }
 function renderAll(){
-  const rows=filtered(); document.getElementById('data-note').textContent=`${SUMMARY.totalRecords} records · ${SUMMARY.minDate} → ${SUMMARY.maxDate} · ${SUMMARY.matched} matched`;
+  const rows=filtered();
+  const startStr=startWindow().toISOString().slice(0,10);
+  document.getElementById('data-note').textContent=`${SUMMARY.totalRecords} records · ${SUMMARY.matched} matched`;
+  const rp=document.getElementById('range-pill'); if(rp) rp.textContent=`${startStr} → ${SUMMARY.maxDate}`;
   renderOverview(rows); renderElevation(rows); renderHeart(rows); renderReadiness(rows); renderActivities(rows);
 }
+
+let ROUTES=null, mapObj=null, allLayer=null, selLayer=null, mapInit=false;
+async function ensureRoutes(){
+  if(ROUTES) return ROUTES;
+  document.getElementById('map-note').textContent='Loading routes…';
+  try{ const r=await fetch('routes.json',{cache:'no-store'}); ROUTES=await r.json(); }
+  catch(e){ ROUTES={}; document.getElementById('map-note').textContent='Could not load routes.json'; }
+  return ROUTES;
+}
+function activityById(id){ return ACTIVITIES.find(a=>a.id===id); }
+async function initMap(){
+  if(mapInit) { setTimeout(()=>mapObj.invalidateSize(),50); return; }
+  mapInit=true;
+  await ensureRoutes();
+  const ids=Object.keys(ROUTES);
+  mapObj=L.map('map',{zoomControl:true,attributionControl:true}).setView([54,-1.7],5);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{
+    attribution:'&copy; OpenStreetMap &copy; CARTO', subdomains:'abcd', maxZoom:19}).addTo(mapObj);
+
+  const sel=document.getElementById('map-activity');
+  const opts=ACTIVITIES.filter(a=>a.id && ROUTES[a.id])
+    .map(a=>`<option value="${a.id}">${a.date} · ${(a.name||'').replace(/</g,'')} (${mi(a.distanceMi)} mi)</option>`).join('');
+  sel.insertAdjacentHTML('beforeend', opts);
+
+  drawAll();
+  document.getElementById('map-kpis').innerHTML=`<div class="kpi"><div class="kpi-label">Mapped activities</div><div class="kpi-value">${ids.length}</div><div class="kpi-sub">with GPS tracks</div></div><div class="kpi"><div class="kpi-label">Total records</div><div class="kpi-value">${SUMMARY.totalRecords}</div><div class="kpi-sub">${SUMMARY.minDate} → ${SUMMARY.maxDate}</div></div>`;
+  document.getElementById('map-note').textContent=`${ids.length} GPS routes`;
+  setTimeout(()=>mapObj.invalidateSize(),60);
+}
+function drawAll(){
+  if(allLayer) mapObj.removeLayer(allLayer);
+  if(!document.getElementById('show-all').checked) return;
+  const lines=[];
+  for(const id in ROUTES){ lines.push(L.polyline(ROUTES[id].pts,{color:T.ink,weight:1.2,opacity:.28})); }
+  allLayer=L.layerGroup(lines).addTo(mapObj);
+  try{ const b=L.latLngBounds([]); for(const id in ROUTES) ROUTES[id].pts.forEach(p=>b.extend(p)); if(b.isValid()) mapObj.fitBounds(b.pad(.05)); }catch(e){}
+}
+function drawSelected(id){
+  if(selLayer) mapObj.removeLayer(selLayer);
+  if(!id || !ROUTES[id]){ document.getElementById('route-name').textContent='—'; document.getElementById('route-meta').textContent=''; return; }
+  const pts=ROUTES[id].pts;
+  selLayer=L.layerGroup([
+    L.polyline(pts,{color:T.ink,weight:5,opacity:.25}),
+    L.polyline(pts,{color:'#7fae16',weight:3,opacity:1}),
+    L.circleMarker(pts[0],{radius:5,color:'#fff',weight:2,fillColor:T.lime,fillOpacity:1}),
+    L.circleMarker(pts[pts.length-1],{radius:5,color:'#fff',weight:2,fillColor:T.ink,fillOpacity:1})
+  ]).addTo(mapObj);
+  mapObj.fitBounds(L.polyline(pts).getBounds().pad(.15));
+  const a=activityById(id);
+  if(a){ document.getElementById('route-name').textContent=a.name;
+    document.getElementById('route-meta').textContent=`${a.date} · ${mi(a.distanceMi)} mi · ${moneyish(a.elevGainFt)} ft gain`; }
+}
+
 document.getElementById('months').addEventListener('input',e=>{months=+e.target.value;document.getElementById('months-out').textContent=months+' month'+(months===1?'':'s');renderAll();});
 document.getElementById('type-filter').addEventListener('change',e=>{typeFilter=e.target.value;renderAll();});
 document.getElementById('hr-mode').addEventListener('change',e=>{hrMode=e.target.value;syncCustomZoneUI();renderAll();});
 document.querySelectorAll('.zone-box').forEach(cb=>cb.addEventListener('change',()=>{customZones=Array.from(document.querySelectorAll('.zone-box:checked')).map(x=>x.value); if(customZones.length===0){customZones=['z2h']; document.querySelector('.zone-box[value="z2h"]').checked=true;} renderAll();}));
 document.getElementById('reset').addEventListener('click',()=>{months=4;typeFilter='Run';hrMode='all';customZones=['z2h','z3h','z4h','z5h'];document.getElementById('months').value=4;document.getElementById('months-out').textContent='4 months';document.getElementById('type-filter').value='Run';document.getElementById('hr-mode').value='all';document.querySelectorAll('.zone-box').forEach(cb=>cb.checked=['z2h','z3h','z4h','z5h'].includes(cb.value));syncCustomZoneUI();document.getElementById('search').value='';document.getElementById('start-date').value='';document.getElementById('end-date').value='';renderAll();});
 ['search','start-date','end-date'].forEach(id=>document.getElementById(id).addEventListener('input',()=>renderActivities(filtered())));
-document.querySelectorAll('.tab').forEach(btn=>btn.addEventListener('click',()=>{const target=btn.dataset.tab;document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b===btn));document.querySelectorAll('.tab-panel').forEach(p=>p.classList.toggle('active',p.id==='tab-'+target));}));
+document.getElementById('map-activity').addEventListener('change',e=>drawSelected(e.target.value));
+document.getElementById('show-all').addEventListener('change',drawAll);
+
+function activateTab(target){
+  document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===target));
+  document.querySelectorAll('.rail-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===target));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.toggle('active',p.id==='tab-'+target));
+  if(target==='map') initMap();
+}
+document.querySelectorAll('.tab, .rail-btn').forEach(btn=>btn.addEventListener('click',()=>activateTab(btn.dataset.tab)));
+
+function tick(){const c=document.getElementById('clock');if(c)c.textContent=new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});}
+tick(); setInterval(tick,30000);
+
 loadActivities();
 </script>
 </body>
