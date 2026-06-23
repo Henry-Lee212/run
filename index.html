@@ -118,11 +118,44 @@ input[type=text],input[type=date]{width:100%;height:38px;border:1px solid var(--
 .switch input{accent-color:var(--ink);width:16px;height:16px}
 .route-stat{font-family:'Space Grotesk';font-variant-numeric:tabular-nums}
 
+/* sortable table + range filters */
+th.sortable{cursor:pointer;user-select:none}
+th.sortable:hover{color:var(--ink)}
+th.sortable .arr{opacity:.4;font-size:9px}
+th.sortable.asc .arr::after{content:" ▲";opacity:1}
+th.sortable.desc .arr::after{content:" ▼";opacity:1}
+tbody tr{cursor:pointer}
+.range-row{display:flex;gap:14px;flex-wrap:wrap;margin:-4px 0 14px;align-items:center}
+.range-row .grp{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+.range-row input{width:74px;height:34px;text-align:center;padding:0 6px}
+.range-row .clear{margin-left:auto}
+
+/* detail modal */
+.modal-bg{position:fixed;inset:0;background:rgba(20,24,28,.45);backdrop-filter:blur(3px);z-index:1000;display:none;align-items:flex-start;justify-content:center;padding:32px 18px;overflow:auto}
+.modal-bg.open{display:flex}
+.modal{background:var(--surface);border-radius:var(--r-card);box-shadow:0 30px 80px rgba(10,20,30,.3);width:100%;max-width:920px;padding:24px 26px}
+.modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:6px}
+.modal-title{font-family:'Space Grotesk';font-size:22px;font-weight:600;letter-spacing:-.01em;line-height:1.15}
+.modal-sub{font-size:12px;color:var(--muted);margin-top:4px}
+.modal-close{width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--muted);font-size:18px;cursor:pointer;flex-shrink:0;display:grid;place-items:center}
+.modal-close:hover{color:var(--ink);border-color:var(--line-2)}
+.modal-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:10px;margin:16px 0 6px}
+.mstat{background:var(--surface-2);border-radius:var(--r-sm);padding:10px 12px}
+.mstat .l{font-size:10.5px;color:var(--muted)} .mstat .v{font-family:'Space Grotesk';font-size:18px;font-weight:600;font-variant-numeric:tabular-nums}
+.modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+.mcard{border:1px solid var(--line);border-radius:var(--r-mid);padding:12px 14px}
+.mcard h4{margin:0 0 8px;font-size:12px;font-weight:600;color:var(--ink)}
+.mchart{position:relative;height:160px}
+#mini-map{height:180px;border-radius:var(--r-sm);overflow:hidden}
+.modal-note{font-size:12px;color:var(--muted);background:var(--surface-2);border-radius:var(--r-sm);padding:10px 12px;margin-top:12px}
+.flag{display:inline-block;font-size:10px;padding:2px 7px;border-radius:999px;background:#fde9c8;color:#8a5a12;margin-left:6px}
+
 @media(max-width:900px){
   .shell{flex-direction:column}
   .rail{flex-direction:row;width:auto;height:auto;position:static;justify-content:flex-start;overflow-x:auto}
   .rail-spacer,.rail-time{display:none}
   .controls,.chart-row,.chart-row.even,.filter-row,.map-layout{grid-template-columns:1fr}
+  .modal-grid{grid-template-columns:1fr}
   #map{height:380px}
 }
 </style>
@@ -251,8 +284,8 @@ input[type=text],input[type=date]{width:100%;height:38px;border:1px solid var(--
             <div class="row" style="margin-top:14px"><label class="switch"><input type="checkbox" id="show-all" checked> Show all routes</label></div>
             <div class="control-row"><label class="control-label">Highlight a run</label></div>
             <select id="map-activity"><option value="">Select an activity…</option></select>
-            <div class="card" style="margin-top:14px;box-shadow:none;border:1px solid var(--line);padding:14px 16px">
-              <div class="kpi-label">Selected route</div>
+            <div class="card" id="route-card" style="margin-top:14px;box-shadow:none;border:1px solid var(--line);padding:14px 16px;cursor:pointer">
+              <div class="kpi-label">Selected route <span style="color:var(--faint)">· click for detail</span></div>
               <div class="kpi-value route-stat" id="route-name" style="font-size:16px">—</div>
               <div class="kpi-sub" id="route-meta"></div>
             </div>
@@ -264,9 +297,36 @@ input[type=text],input[type=date]{width:100%;height:38px;border:1px solid var(--
 
     <div id="tab-activities" class="tab-panel">
       <div class="filter-row"><input id="search" type="text" placeholder="Search Strava title…"><select id="table-country"><option value="all">All countries</option></select><input id="start-date" type="date"><input id="end-date" type="date"></div>
-      <div class="card"><div class="card-head"><h3>Activity explorer</h3><span class="hint" id="activity-count"></span></div><div class="table-wrap"><table><thead><tr><th>Date</th><th>Title</th><th>Source</th><th>Location</th><th class="right">Miles</th><th class="right">Gain</th><th class="right">Avg HR</th><th class="right" id="activity-hr-head">Elevated HR</th><th class="right">TE</th></tr></thead><tbody id="activity-table"></tbody></table></div></div>
+      <div class="range-row">
+        <span class="grp">Miles <input id="mi-min" type="number" min="0" step="1" placeholder="min"> – <input id="mi-max" type="number" min="0" step="1" placeholder="max"></span>
+        <span class="grp">Gain ft <input id="gain-min" type="number" min="0" step="100" placeholder="min"> – <input id="gain-max" type="number" min="0" step="100" placeholder="max"></span>
+        <span class="grp">Avg HR <input id="hr-min" type="number" min="0" step="5" placeholder="min"> – <input id="hr-max" type="number" min="0" step="5" placeholder="max"></span>
+        <button class="btn clear" id="clear-filters" style="height:34px">Clear</button>
+      </div>
+      <div class="card"><div class="card-head"><h3>Activity explorer</h3><span class="hint" id="activity-count"></span></div><div class="table-wrap"><table><thead><tr><th class="sortable" data-sort="date">Date<span class="arr"></span></th><th class="sortable" data-sort="name">Title<span class="arr"></span></th><th>Source</th><th>Location</th><th class="right sortable" data-sort="distanceMi">Miles<span class="arr"></span></th><th class="right sortable" data-sort="elevGainFt">Gain<span class="arr"></span></th><th class="right sortable" data-sort="avgHr">Avg HR<span class="arr"></span></th><th class="right sortable" data-sort="elevated" id="activity-hr-head">Elevated HR<span class="arr"></span></th><th class="right">TE</th></tr></thead><tbody id="activity-table"></tbody></table></div></div>
     </div>
   </main>
+</div>
+
+<div class="modal-bg" id="detail-modal">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title" id="d-title">Run</div>
+        <div class="modal-sub" id="d-sub"></div>
+      </div>
+      <button class="modal-close" id="d-close" title="Close"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-stats" id="d-stats"></div>
+    <div class="modal-grid">
+      <div class="mcard"><h4>Heart rate</h4><div class="mchart"><canvas id="d-hr"></canvas></div></div>
+      <div class="mcard"><h4>Pace</h4><div class="mchart"><canvas id="d-pace"></canvas></div></div>
+      <div class="mcard"><h4>Elevation profile <span style="color:var(--faint);font-weight:400">(raw barometric)</span></h4><div class="mchart"><canvas id="d-ele"></canvas></div></div>
+      <div class="mcard"><h4>HR zones (this run)</h4><div class="mchart"><canvas id="d-zone"></canvas></div></div>
+    </div>
+    <div class="mcard" style="margin-top:14px"><h4>Route</h4><div id="mini-map"></div></div>
+    <div class="modal-note" id="d-note" style="display:none"></div>
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -286,6 +346,7 @@ async function loadActivities(){
     const res = await fetch('activities.json', {cache:'no-store'});
     if (!res.ok) throw new Error('Could not load activities.json');
     ACTIVITIES = await res.json();
+    ACTIVITIES.forEach((a,i)=>a._i=i);
     syncCustomZoneUI();
     renderAll();
   } catch (err) {
@@ -295,7 +356,7 @@ async function loadActivities(){
   }
 }
 
-const SUMMARY = {"totalRecords": 1163, "garminRecords": 951, "stravaOnly": 212, "matched": 869, "withHrZones": 945, "minDate": "2021-01-16", "maxDate": "2026-06-21"};
+const SUMMARY = {"totalRecords": 1099, "garminRecords": 951, "stravaOnly": 148, "matched": 934, "withHrZones": 945, "minDate": "2021-01-16", "maxDate": "2026-06-21", "stravaMaxDate": "2026-06-21"};
 const TODAY = new Date(SUMMARY.maxDate + 'T12:00:00');
 let months = 4, typeFilter = 'Run', hrMode = 'all';
 let customZones = ['z2h','z3h','z4h','z5h'];
@@ -372,6 +433,7 @@ function renderReadiness(rows){
   document.getElementById('big-efforts').innerHTML=runRows.slice().sort((a,b)=>((b.distanceMi||0)+(b.elevGainFt||0)/1000)-((a.distanceMi||0)+(a.elevGainFt||0)/1000)).slice(0,12).map(a=>`<tr><td>${a.date}</td><td class="name">${a.name}</td><td class="right">${mi(a.distanceMi)}</td><td class="right">${moneyish(a.elevGainFt)} ft</td><td class="right">${hrs(elevated(a))}</td></tr>`).join('');
 }
 let tableCountriesFilled=false;
+let sortKey='date', sortDir='desc';
 function fillTableCountries(){
   if(tableCountriesFilled) return;
   const c={}; ACTIVITIES.forEach(a=>{const k=a.country||''; if(k) c[k]=(c[k]||0)+1;});
@@ -380,9 +442,26 @@ function fillTableCountries(){
   document.getElementById('table-country').innerHTML=opts.join('');
   tableCountriesFilled=true;
 }
+function numVal(id){const v=parseFloat(document.getElementById(id).value); return isNaN(v)?null:v;}
+function postExport(a){ return a.source==='Garmin Only' && a.date>SUMMARY.stravaMaxDate; }
 function renderActivities(rows){
-  const q=document.getElementById('search').value.toLowerCase(); const sd=document.getElementById('start-date').value; const ed=document.getElementById('end-date').value; const ctry=document.getElementById('table-country').value;
-  let rr=rows.filter(a=>(!q||a.name.toLowerCase().includes(q))&&(!sd||a.date>=sd)&&(!ed||a.date<=ed)&&(ctry==='all'||a.country===ctry)); const ah=document.getElementById('activity-hr-head'); if(ah) ah.textContent=hrLabel(); document.getElementById('activity-count').textContent=`${rr.length} shown`; document.getElementById('activity-table').innerHTML=rr.slice(0,400).map(a=>`<tr><td>${a.date}</td><td class="name">${a.name}</td><td>${sourceBadge(a.source)}</td><td>${a.region&&a.region!=='Other'?a.region+', ':''}${a.country||'<span style="color:var(--faint)">—</span>'}</td><td class="right">${mi(a.distanceMi)}</td><td class="right">${moneyish(a.elevGainFt)} ft${a.elevCorrection?' <span class="badge" title="'+a.elevCorrection+'">fixed</span>':''}</td><td class="right">${a.avgHr||''}</td><td class="right">${hrs(elevated(a))}</td><td class="right">${a.trainingEffect||''}</td></tr>`).join('');
+  const q=document.getElementById('search').value.toLowerCase();
+  const sd=document.getElementById('start-date').value, ed=document.getElementById('end-date').value;
+  const ctry=document.getElementById('table-country').value;
+  const miMin=numVal('mi-min'), miMax=numVal('mi-max'), gMin=numVal('gain-min'), gMax=numVal('gain-max'), hMin=numVal('hr-min'), hMax=numVal('hr-max');
+  let rr=rows.filter(a=>
+    (!q||a.name.toLowerCase().includes(q)) && (!sd||a.date>=sd) && (!ed||a.date<=ed) &&
+    (ctry==='all'||a.country===ctry) &&
+    (miMin===null||a.distanceMi>=miMin) && (miMax===null||a.distanceMi<=miMax) &&
+    (gMin===null||a.elevGainFt>=gMin) && (gMax===null||a.elevGainFt<=gMax) &&
+    (hMin===null||(a.avgHr||0)>=hMin) && (hMax===null||(a.avgHr||0)<=hMax)
+  );
+  const keyfn=a=> sortKey==='elevated'?elevated(a) : sortKey==='name'?(a.name||'').toLowerCase() : (a[sortKey]??-Infinity);
+  rr.sort((a,b)=>{const x=keyfn(a),y=keyfn(b); const c=x<y?-1:x>y?1:0; return sortDir==='asc'?c:-c;});
+  const ah=document.getElementById('activity-hr-head'); if(ah) ah.firstChild.textContent=hrLabel()+' ';
+  document.getElementById('activity-count').textContent=`${rr.length} shown`;
+  document.querySelectorAll('th.sortable').forEach(th=>{th.classList.remove('asc','desc'); if(th.dataset.sort===sortKey) th.classList.add(sortDir);});
+  document.getElementById('activity-table').innerHTML=rr.slice(0,500).map(a=>`<tr data-i="${a._i}"><td>${a.date}</td><td class="name">${a.name}${postExport(a)?'<span class="flag" title="Recorded after your latest Strava export ('+SUMMARY.stravaMaxDate+') — elevation unverified, no loss">post-export</span>':''}</td><td>${sourceBadge(a.source)}</td><td>${a.region&&a.region!=='Other'?a.region+', ':''}${a.country||'<span style="color:var(--faint)">—</span>'}</td><td class="right">${mi(a.distanceMi)}</td><td class="right">${moneyish(a.elevGainFt)} ft${a.elevCorrection?' <span class="badge" title="'+a.elevCorrection+'">fixed</span>':''}</td><td class="right">${a.avgHr||''}</td><td class="right">${hrs(elevated(a))}</td><td class="right">${a.trainingEffect||''}</td></tr>`).join('');
 }
 function renderAll(){
   const rows=filtered();
@@ -393,7 +472,7 @@ function renderAll(){
   renderOverview(rows); renderElevation(rows); renderHeart(rows); renderReadiness(rows); renderActivities(rows);
 }
 
-let ROUTES=null, mapObj=null, allLayer=null, selLayer=null, mapInit=false;
+let ROUTES=null, mapObj=null, allLayer=null, selLayer=null, mapInit=false, mapSelId='';
 let mapCountry='all', mapRegion='all';
 async function ensureRoutes(){
   if(ROUTES) return ROUTES;
@@ -483,7 +562,10 @@ document.querySelectorAll('.zone-box').forEach(cb=>cb.addEventListener('change',
 document.getElementById('reset').addEventListener('click',()=>{months=4;typeFilter='Run';hrMode='all';customZones=['z2h','z3h','z4h','z5h'];document.getElementById('months').value=4;document.getElementById('months-out').textContent='4 months';document.getElementById('type-filter').value='Run';document.getElementById('hr-mode').value='all';document.querySelectorAll('.zone-box').forEach(cb=>cb.checked=['z2h','z3h','z4h','z5h'].includes(cb.value));syncCustomZoneUI();document.getElementById('search').value='';document.getElementById('start-date').value='';document.getElementById('end-date').value='';renderAll();});
 ['search','start-date','end-date'].forEach(id=>document.getElementById(id).addEventListener('input',()=>renderActivities(filtered())));
 document.getElementById('table-country').addEventListener('change',()=>renderActivities(filtered()));
-document.getElementById('map-activity').addEventListener('change',e=>drawSelected(e.target.value));
+document.getElementById('map-activity').addEventListener('change',e=>{mapSelId=e.target.value;drawSelected(e.target.value);});
+document.getElementById('route-card').addEventListener('click',()=>{
+  if(!mapSelId) return; const a=ACTIVITIES.find(x=>x.id===mapSelId); if(a) openDetail(a._i);
+});
 document.getElementById('show-all').addEventListener('change',()=>drawAll());
 document.getElementById('map-country').addEventListener('change',e=>{
   mapCountry=e.target.value; mapRegion='all';
@@ -495,6 +577,102 @@ document.getElementById('map-region').addEventListener('change',e=>{
   mapRegion=e.target.value; fillActivitySelect();
   if(selLayer){ mapObj.removeLayer(selLayer); selLayer=null; document.getElementById('route-name').textContent='—'; document.getElementById('route-meta').textContent=''; }
   refreshMap();
+});
+
+/* ---------- run detail view ---------- */
+let STREAMS=null, dCharts={}, miniMap=null, miniLayer=null;
+async function ensureStreams(){
+  if(STREAMS) return STREAMS;
+  try{ const r=await fetch('streams.json',{cache:'no-store'}); STREAMS=await r.json(); }
+  catch(e){ STREAMS={}; }
+  return STREAMS;
+}
+function mlineOpts(yLabel, reverse){
+  return {responsive:true,maintainAspectRatio:false,animation:false,
+    plugins:{legend:{display:false},tooltip:{backgroundColor:T.ink,padding:8,cornerRadius:8}},
+    scales:{x:{grid:{display:false},border:{display:false},ticks:{maxTicksLimit:6,callback:v=>v+''}},
+            y:{reverse:!!reverse,grid:{color:'rgba(20,22,24,.06)'},border:{display:false},title:{display:true,text:yLabel,font:{size:10}}}}};
+}
+function mkLine(id,labels,data,color,fill,yLabel,reverse){
+  if(dCharts[id]) dCharts[id].destroy();
+  dCharts[id]=new Chart(document.getElementById(id),{type:'line',
+    data:{labels,datasets:[{data,borderColor:color,backgroundColor:fill,fill:!!fill,tension:.3,pointRadius:0,borderWidth:2,spanGaps:true}]},
+    options:mlineOpts(yLabel,reverse)});
+}
+async function openDetail(i){
+  const a=ACTIVITIES[i]; if(!a) return;
+  document.getElementById('d-title').textContent=a.name||'Run';
+  document.getElementById('d-sub').innerHTML=`${a.date} · ${sourceBadge(a.source)} · ${a.region&&a.region!=='Other'?a.region+', ':''}${a.country||'—'}`;
+  const pace=a.distanceMi>0 && a.movingHours>0 ? (a.movingHours*60/a.distanceMi):0;
+  document.getElementById('d-stats').innerHTML=[
+    ['Distance',mi(a.distanceMi)+' mi'],['Moving',hrs(a.movingHours)+' h'],
+    ['Avg pace',pace?pace.toFixed(1)+' /mi':'—'],['Gain',moneyish(a.elevGainFt)+' ft'],
+    ['Loss',a.elevLossFt?moneyish(a.elevLossFt)+' ft':'—'],['Avg HR',a.avgHr||'—'],['Max HR',a.maxHr||'—'],
+    [hrLabel(),hrs(elevated(a))+' h']
+  ].map(([l,v])=>`<div class="mstat"><div class="l">${l}</div><div class="v">${v}</div></div>`).join('');
+
+  document.getElementById('detail-modal').classList.add('open');
+  await ensureStreams();
+  const s=a.id?STREAMS[a.id]:null;
+  const note=document.getElementById('d-note');
+  if(s){
+    note.style.display='none';
+    mkLine('d-hr', s.d, s.hr, '#d23b3b', 'rgba(210,59,59,.10)', 'bpm', false);
+    mkLine('d-pace', s.d, s.pace, T.ink, null, 'min/mi', true);
+    mkLine('d-ele', s.d, s.ele, '#7fae16', T.limeFill, 'ft', false);
+  } else {
+    note.style.display='block';
+    note.innerHTML = a.source==='Strava Only'
+      ? 'No second-by-second stream for this run (Strava-only — detailed HR/pace/elevation come from Garmin device files).'
+      : 'No detailed stream available for this run.';
+    ['d-hr','d-pace','d-ele'].forEach(id=>{if(dCharts[id])dCharts[id].destroy();});
+  }
+  // zone doughnut for this run
+  if(dCharts['d-zone']) dCharts['d-zone'].destroy();
+  const zv=[a.z1h,a.z2h,a.z3h,a.z4h,a.z5h].map(v=>+(v||0).toFixed(2));
+  if(zv.some(v=>v>0)){
+    dCharts['d-zone']=new Chart(document.getElementById('d-zone'),{type:'doughnut',
+      data:{labels:['Z1','Z2','Z3','Z4','Z5'],datasets:[{data:zv,backgroundColor:['#cdd3d9','#def58a',T.lime,'#7fae16',T.ink],borderWidth:0}]},
+      options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{position:'right',labels:{boxWidth:8,font:{size:10},padding:8}},tooltip:{backgroundColor:T.ink,callbacks:{label:c=>c.label+': '+hrs(c.parsed)+' h'}}}}});
+  }
+  // mini route map
+  const routeCard=document.getElementById('mini-map').parentElement;
+  await ensureRoutes();
+  if(a.id && ROUTES[a.id]){
+    routeCard.style.display='';
+    setTimeout(()=>{
+      if(!miniMap){ miniMap=L.map('mini-map',{zoomControl:false,attributionControl:false,dragging:true});
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:18}).addTo(miniMap); }
+      if(miniLayer) miniMap.removeLayer(miniLayer);
+      const pts=ROUTES[a.id].pts;
+      miniLayer=L.layerGroup([L.polyline(pts,{color:'#7fae16',weight:3}),
+        L.circleMarker(pts[0],{radius:4,color:'#fff',weight:2,fillColor:T.lime,fillOpacity:1}),
+        L.circleMarker(pts[pts.length-1],{radius:4,color:'#fff',weight:2,fillColor:T.ink,fillOpacity:1})]).addTo(miniMap);
+      miniMap.invalidateSize(); miniMap.fitBounds(L.polyline(pts).getBounds().pad(.15));
+    },60);
+  } else { routeCard.style.display='none'; }
+}
+function closeDetail(){ document.getElementById('detail-modal').classList.remove('open'); }
+document.getElementById('d-close').addEventListener('click',closeDetail);
+document.getElementById('detail-modal').addEventListener('click',e=>{ if(e.target.id==='detail-modal') closeDetail(); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeDetail(); });
+document.getElementById('activity-table').addEventListener('click',e=>{
+  const tr=e.target.closest('tr[data-i]'); if(tr) openDetail(+tr.dataset.i);
+});
+
+/* ---------- table sorting + range filters ---------- */
+document.querySelectorAll('th.sortable').forEach(th=>th.addEventListener('click',()=>{
+  const k=th.dataset.sort;
+  if(sortKey===k){ sortDir = sortDir==='asc'?'desc':'asc'; }
+  else { sortKey=k; sortDir = (k==='name')?'asc':'desc'; }
+  renderActivities(filtered());
+}));
+['mi-min','mi-max','gain-min','gain-max','hr-min','hr-max'].forEach(id=>
+  document.getElementById(id).addEventListener('input',()=>renderActivities(filtered())));
+document.getElementById('clear-filters').addEventListener('click',()=>{
+  ['search','start-date','end-date','mi-min','mi-max','gain-min','gain-max','hr-min','hr-max'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('table-country').value='all';
+  sortKey='date'; sortDir='desc'; renderActivities(filtered());
 });
 
 function activateTab(target){
